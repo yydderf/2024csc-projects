@@ -13,20 +13,26 @@ make
 
 #### TODO
 - [ ] MITM Attack
-    - [ ] Scan for available WiFi devices / VMs
-    - [ ] ARP Spoofing
+    - [ ] Task I - Device Address Information Collection
+        - [ ] Get network interface info
+        - [ ] Scan for available WiFi devices / VMs
+        - [ ] Print the devices
+    - [ ] Task II - ARP Spoofing
         - [ ] Generate ARP reply (ref: https://github.com/Abhijay90/arp_packet_generate/tree/master)
         - [ ] Send Spoofed ARP replies to the victim
-    - [ ] Get Username / Password from webpage
+    - [ ] Task III - Fetch user credentials from HTTP sessions
         - [ ] Get request from victim (listen on port 80)
         - [ ] Send the request to the server
 - [ ] Pharm Attack
-    - [ ] Scan for available WiFi devices / VMs
-    - [ ] DNS Spoofing (DNS format, Netfilter queue)
+    - [ ] Task I - Device Address Information Collection
+        - [ ] Get network interface info
+        - [ ] Scan for available WiFi devices / VMs
+        - [ ] Print the devices
+    - [ ] Task II - ARP Spoofing
+        - [ ] Generate ARP reply (ref: https://github.com/Abhijay90/arp_packet_generate/tree/master)
+        - [ ] Send Spoofed ARP replies to the victim
+    - [ ] Task IV - DNS Spoofing (DNS format, Netfilter queue)
         - [ ] Intercept DNS request from the victim (listen on port 80)
         - [ ] Generate DNS reply 
         - [ ] Reply the victim with the wrong IP address
-    - [ ] Redirect the home page of NYCU to phishing page
-- [ ] Scan
-    - [ ] Get IP Address
-    - [ ] Get MAC Address
+        - [ ] Redirect the home page of NYCU to phishing page
