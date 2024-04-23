@@ -1,20 +1,29 @@
 #ifndef ARP_H
 #define ARP_H
 
+#define PROTO_ARP 0x0806
+#define ETH2_HEADER_LEN 14
+#define HW_TYPE 1
+#define PROTOCOL_TYPE 0x800
+#define MAC_LENGTH 6
+#define IPV4_LENGTH 4
+#define ARP_REQUEST 0x01
+#define ARP_REPLY 0x02
+#define BUF_SIZE 60
+
 struct arp_header {
-    u_int16_t htype;    /* Hardware Type           */
-    u_int16_t ptype;    /* Protocol Type           */
-    u_char   hlen;        /* Hardware Address Length */
-    u_char   plen;        /* Protocol Address Length */
-    uint16_t opcode;     /* Operation Code          */
-    uint8_t  sender_mac[6];      /* Sender hardware address */
-    uint32_t sender_ip;      /* Sender IP address       */
-    uint8_t  target_mac[6];      /* Target hardware address */
-    uint32_t target_ip;      /* Target IP address       */
+    unsigned short htype;    /* Hardware Type           */
+    unsigned short ptype;    /* Protocol Type           */
+    unsigned char hlen;        /* Hardware Address Length */
+    unsigned char plen;        /* Protocol Address Length */
+    unsigned short opcode;     /* Operation Code          */
+    unsigned char sender_mac[MAC_LENGTH];      /* Sender hardware address */
+    unsigned char sender_ip[IPV4_LENGTH];      /* Sender IP address       */
+    unsigned char target_mac[MAC_LENGTH];      /* Target hardware address */
+    unsigned char target_ip[IPV4_LENGTH];      /* Target IP address       */
 
 };
 
-int send_arp_broadcast(int sockfd, std::string sender_ip, std::string target_ip);
-int recv_arp_responses(int sockfd, std::vector<std::pair<std::string, std::string>> &answered_list, int timeout);
+void send_packet();
 
 #endif
