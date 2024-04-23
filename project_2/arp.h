@@ -29,6 +29,31 @@ void send_packet(int sock, int ifindex,
         std::string target_ip, std::string target_mac);
 void mac_char_to_string(std::string &target, char *mac_addr);
 void ipv4_uchar_to_string(std::string &target, unsigned char *ip_addr);
-void ip_string_to_uchar(std::string &str, unsigned char *target);
+void ip_string_to_uchar(unsigned char *target, std::string &str_ip);
+
+class ARPOperator {
+    int raw_sock;
+    int ifindex;
+    std::string ip_addr;
+    std::string mac_addr;
+    struct ethhdr *ether_req;
+    struct ethhdr *ether_resp;
+    struct arp_header *arp_req;
+    struct arp_header *arp_resp;
+    struct sockaddr_ll socket_address;
+    unsigned char buffer[BUF_SIZE];
+    unsigned char src_ip_char[4];
+    unsigned char src_mac_char[6];
+    unsigned char dst_ip_char[4];
+    unsigned char dst_mac_char[6];
+public:
+    ARPOperator(std::string sender_ip, std::string &ifname);
+    void prepare_broadcast();
+    int send();
+    int recv();
+    void set_mode(int mode);
+    void set_source(std::string ip, std::string mac);
+    void set_target(std::string ip, std::string mac);
+};
 
 #endif
