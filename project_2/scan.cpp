@@ -89,6 +89,27 @@ int get_network_interface_info(std::string &local_ip, std::string &netmask, std:
     return EX_OK;
 }
 
+int get_host_in_range(std::string ip_addr, std::string netmask, std::vector<std::string> &candidates)
+{
+    struct in_addr addr;
+    struct in_addr mask;
+    inet_aton(ip_addr.c_str(), &addr);
+    inet_aton(netmask.c_str(), &mask);
+
+    struct in_addr network_addr;
+    struct in_addr broadcast_addr;
+    network_addr.s_addr = addr.s_addr & mask.s_addr;
+    broadcast_addr.s_addr = addr.s_addr | ~mask.s_addr;
+
+    struct in_addr candidate;
+    for (auto i = ntohl(network_addr.s_addr) + 1; i < ntohl(broadcast_addr.s_addr); i++) {
+        candidate.s_addr = htonl(i);
+        candidates.push_back(inet_ntoa(candidate));
+    }
+
+    return 0;
+}
+
 int scan_devices(std::string ip_addr, std::string mac_addr, 
         std::vector<std::pair<std::string, std::string>> &answered_list, int timeout)
 {
