@@ -21,10 +21,12 @@
 #include <string.h>
 #include <linux/if_packet.h>
 
+#include <dirent.h>
+
 #include "scan.h"
 
 // reference: https://github.com/ML-Cai/ARPSpoofing/blob/master/main.cpp#L210
-int get_network_interface_info(std::string &local_ip, std::string &netmask, std::string &local_mac)
+int get_network_interface_info(std::string &local_ip, std::string &netmask, std::string &local_mac, std::string &if_name)
 {
     struct ifaddrs* ptr_ifaddrs = nullptr;
     struct ifaddrs* entry = nullptr;
@@ -39,7 +41,7 @@ int get_network_interface_info(std::string &local_ip, std::string &netmask, std:
         std::string ip_hr;
         std::string netmask_hr;
 
-        std::string if_name = std::string(entry->ifa_name);
+        if_name = std::string(entry->ifa_name);
 
         if (if_name == "lo") {
             continue;

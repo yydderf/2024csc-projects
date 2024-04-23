@@ -24,9 +24,9 @@
 int main()
 {
     std::string sender_mac, target_mac;
-    std::string sender_ip = "192.168.0.19";
-    std::string netmask = "255.255.255.0";
-    std::string ifname = "wlp3s0";
+    std::string sender_ip, netmask, ifname;
+    
+    get_network_interface_info(sender_ip, netmask, sender_mac, ifname);
 
     std::vector<std::string> candidates;
     std::vector<std::pair<std::string, std::string>> answered_list;
