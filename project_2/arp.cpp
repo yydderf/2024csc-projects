@@ -17,14 +17,25 @@
 
 #include "arp.h"
 
+void ip_string_to_uchar(std::string &str_ip, unsigned char *target)
+{
+    struct in_addr addr;
+
+    if (inet_aton(str_ip.c_str(), &addr) == 0) {
+        std::cerr << "Invalid IP address" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    memcpy(target, &addr.s_addr, sizeof(addr.s_addr));
+}
+
 void send_packet()
 {
     int sd;
     unsigned char buffer[BUF_SIZE];
     // 172.20.10.3
     // 172.20.10.15
-    unsigned char source_ip[4] = {172, 20, 10, 3};
-    unsigned char target_ip[4] = {172, 20, 10, 1};
+    std::string src_ip = "172.20.10.3";
+    std::string dst_ip = "172.20.10.1";
     struct ifreq ifr;
     struct ethhdr *send_req = (struct ethhdr *)buffer;
     struct ethhdr *rcv_resp= (struct ethhdr *)buffer;
@@ -96,10 +107,9 @@ close (sd);
     arp_req->plen = IPV4_LENGTH;
     arp_req->opcode = htons(ARP_REQUEST);
 
-    for (index=0;index<5;index++) {
-        arp_req->sender_ip[index]=(unsigned char)source_ip[index];
-        arp_req->target_ip[index]=(unsigned char)target_ip[index];
-    }
+    ip_string_to_uchar(src_ip, arp_req->sender_ip);
+    ip_string_to_uchar(dst_ip, arp_req->target_ip);
+
 // Submit request for a raw socket descriptor.
     if ((sd = socket (PF_PACKET, SOCK_RAW, htons (ETH_P_ALL))) < 0) {
         perror ("socket() failed ");

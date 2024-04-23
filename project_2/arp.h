@@ -25,5 +25,6 @@ struct arp_header {
 };
 
 void send_packet();
+void ip_string_to_uchar(std::string &str, unsigned char *target);
 
 #endif
