@@ -14,7 +14,7 @@ struct arp_header {
 
 };
 
-int send_arp_broadcast(int sockfd, std::string ip_addr);
+int send_arp_broadcast(int sockfd, std::string sender_ip, std::string target_ip);
 int recv_arp_responses(int sockfd, std::vector<std::pair<std::string, std::string>> &answered_list, int timeout);
 
 #endif

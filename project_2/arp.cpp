@@ -13,16 +13,44 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 
+#include <linux/if_packet.h>
+
 #include "arp.h"
 
-int send_arp_broadcast(int sockfd, std::string ip_addr)
+int send_arp_broadcast(int sockfd, std::string sender_ip, std::string target_ip)
 {
     std::string broadcast_mac_str = "ff:ff:ff:ff:ff:ff";
+    unsigned char buffer[60];
+    struct ifreq ifr;
     struct arp_header arp_request;
     struct in_addr local_ip;
-    struct sockaddr_in dest;
+    struct in_addr remote_ip;
+    struct sockaddr_ll sock_addr;
+    int sd;
+    int index,ret,length=0,ifindex;
 
-    inet_aton(ip_addr.c_str(), &local_ip);
+    memset(buffer,0x00,60);
+    /*open socket*/
+    sd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+    if (sd == -1) {
+        perror("socket():");
+        exit(1);
+    }
+    strcpy(ifr.ifr_name, "wlp3s0");
+    /*retrieve ethernet interface index*/
+    if (ioctl(sd, SIOCGIFINDEX, &ifr) == -1) {
+        perror("SIOCGIFINDEX");
+        exit(1);
+    }
+    ifindex = ifr.ifr_ifindex;
+    if (ioctl(sd, SIOCGIFHWADDR, &ifr) == -1) {
+        perror("SIOCGIFINDEX");
+        exit(1);
+    }
+    close (sd);
+
+    inet_aton(sender_ip.c_str(), &local_ip);
+    inet_aton(target_ip.c_str(), &remote_ip);
 
     memset(&arp_request, 0, sizeof(arp_header));
 
@@ -32,13 +60,19 @@ int send_arp_broadcast(int sockfd, std::string ip_addr)
     arp_request.plen   = 4;
     arp_request.opcode = htons(1);
     memcpy(arp_request.target_mac, (void *)ether_aton(broadcast_mac_str.c_str()), 6);
-    arp_request.target_ip = local_ip.s_addr;
+    arp_request.target_ip = remote_ip.s_addr;
+    arp_request.sender_ip = local_ip.s_addr;
 
-    memset(&dest, 0, sizeof(dest));
-    dest.sin_family = AF_INET;
-    dest.sin_addr.s_addr = htonl(INADDR_BROADCAST);
+    sock_addr.sll_family = AF_PACKET;
+    sock_addr.sll_protocol = htons(ETH_P_ARP);
+    sock_addr.sll_ifindex = ifindex;
+    sock_addr.sll_hatype = htons(ARPHRD_ETHER);
+    sock_addr.sll_pkttype = (PACKET_BROADCAST);
+    sock_addr.sll_halen = 4;
+    sock_addr.sll_addr[6] = 0x00;
+    sock_addr.sll_addr[7] = 0x00;
 
-    return sendto(sockfd, &arp_request, sizeof(arp_request), 0, (struct sockaddr *)&dest, sizeof(dest));
+    return sendto(sockfd, &arp_request, sizeof(arp_request), 0, (struct sockaddr *)&sock_addr, sizeof(sock_addr));
 }
 
 int recv_arp_responses(int sockfd, std::vector<std::pair<std::string, std::string>> &answered_list, int timeout)

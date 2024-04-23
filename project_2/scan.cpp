@@ -113,24 +113,26 @@ int get_host_in_range(std::string ip_addr, std::string netmask, std::vector<std:
 int scan_devices(std::string ip_addr, std::string mac_addr, 
         std::vector<std::pair<std::string, std::string>> &answered_list, int timeout)
 {
-    int sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+    int sockfd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if (sockfd < 0) {
         perror("socket() failed");
         exit(EXIT_FAILURE);
     }
 
-    int optval = 1;
-    if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(optval)) < 0) {
-        perror("setsocketopt() failed");
-        close(sockfd);
-        exit(EXIT_FAILURE);
-    }
+    // int optval = 1;
+    // if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(optval)) < 0) {
+    //     perror("setsocketopt() failed");
+    //     close(sockfd);
+    //     exit(EXIT_FAILURE);
+    // }
 
-    if (send_arp_broadcast(sockfd, ip_addr) < 0) {
+    if (send_arp_broadcast(sockfd, ip_addr, "76.12.0.32") < 0) {
         perror("send_arp_broadcast() failed");
         close(sockfd);
         exit(EXIT_FAILURE);
     }
+
+    std::cout << "sent" << std::endl;
 
     recv_arp_responses(sockfd, answered_list, timeout);
 
