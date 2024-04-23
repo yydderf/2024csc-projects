@@ -24,9 +24,6 @@ struct arp_header {
 
 };
 
-void send_packet(int sock, int ifindex,
-        std::string sender_ip, std::string sender_mac,
-        std::string target_ip, std::string target_mac);
 void mac_char_to_string(std::string &target, char *mac_addr);
 void ipv4_uchar_to_string(std::string &target, unsigned char *ip_addr);
 void ip_string_to_uchar(unsigned char *target, std::string &str_ip);
@@ -54,6 +51,7 @@ public:
     void set_mode(int mode);
     void set_source(std::string ip, std::string mac);
     void set_target(std::string ip, std::string mac);
+    void set_timeout(int sec, int usec);
 };
 
 #endif

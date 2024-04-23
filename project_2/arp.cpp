@@ -118,6 +118,18 @@ void ARPOperator::set_target(std::string ip, std::string mac)
     memcpy(arp_req->target_ip, dst_ip_char, 4);
 }
 
+void ARPOperator::set_timeout(int sec, int usec)
+{
+    struct timeval timeout;
+    timeout.tv_sec = 5; // Timeout of 5 seconds
+    timeout.tv_usec = 0;
+    if (setsockopt(raw_sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
+        perror("setsockopt() failed");
+        close(raw_sock);
+        exit(EXIT_FAILURE);
+    }
+}
+
 void ip_string_to_uchar(unsigned char *target, std::string &str_ip)
 {
     struct in_addr addr;

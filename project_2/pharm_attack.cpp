@@ -14,7 +14,10 @@
 #include <sys/time.h>
 
 #include <linux/if_packet.h>
+
+
 #include "arp.h"
+#include "scan.h"
 #include "pharm_attack.h"
 
 
@@ -22,13 +25,22 @@ int main()
 {
     std::string sender_mac, target_mac;
     std::string sender_ip = "192.168.0.19", target_ip = "192.168.0.1";
+    std::string netmask = "255.255.255.0";
     std::string ifname = "wlp3s0";
+
+    std::vector<std::string> candidates;
+
+    get_host_in_range(sender_ip, netmask, candidates);
 
     ARPOperator arp_operator(sender_ip, ifname);
 
     arp_operator.prepare_broadcast();
-    arp_operator.set_target(target_ip, target_mac);
-    arp_operator.send();
+    for (auto candidate : candidates) {
+        arp_operator.set_target(candidate, target_mac);
+        arp_operator.send();
+    }
+
+    arp_operator.set_timeout(5, 0);
 
     // send_packet(sock, ifindex, sender_ip, sender_mac, target_ip, target_mac);
 
