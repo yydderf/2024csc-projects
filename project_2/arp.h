@@ -45,13 +45,16 @@ class ARPOperator {
     unsigned char dst_mac_char[6];
 public:
     ARPOperator(std::string sender_ip, std::string &ifname);
+    ~ARPOperator();
     void prepare_broadcast();
     int send();
     int recv();
+    void clear_buffer();
     void set_mode(int mode);
     void set_source(std::string ip, std::string mac);
     void set_target(std::string ip, std::string mac);
     void set_timeout(int sec, int usec);
+    int get_candidate_response(std::string &ip, std::string &mac);
 };
 
 #endif

@@ -57,6 +57,11 @@ ARPOperator::ARPOperator(std::string ip, std::string &ifname)
     }
 }
 
+ARPOperator::~ARPOperator()
+{
+    close(raw_sock);
+}
+
 void ARPOperator::prepare_broadcast()
 {
     for (int index = 0; index < 6; index++)
@@ -130,6 +135,21 @@ void ARPOperator::set_timeout(int sec, int usec)
     }
 }
 
+void ARPOperator::clear_buffer()
+{
+    memset(buffer, 0x00, BUF_SIZE);
+}
+
+int ARPOperator::get_candidate_response(std::string &ip, std::string &mac)
+{
+    if (htons(ether_resp->h_proto) == PROTO_ARP) {
+        ipv4_uchar_to_string(ip, arp_resp->sender_ip);
+        mac_char_to_string(mac, (char*)arp_resp->sender_mac);
+        return 1;
+    }
+    return 0;
+}
+
 void ip_string_to_uchar(unsigned char *target, std::string &str_ip)
 {
     struct in_addr addr;
@@ -152,7 +172,7 @@ void mac_char_to_string(std::string &target, char *mac_addr)
     target = ss.str();
 }
 
-void ipv4_char_to_string(std::string &target, unsigned char *ip_addr)
+void ipv4_uchar_to_string(std::string &target, unsigned char *ip_addr)
 {
     std::stringstream ss;
     for (int i = 0; i < 4; i++) {

@@ -46,8 +46,8 @@ int get_network_interface_info(std::string &local_ip, std::string &netmask, std:
         }
 
         sa_family_t addr_family = entry->ifa_addr->sa_family;
-        if(addr_family == AF_INET){
-            if(entry->ifa_addr != nullptr){
+        if (addr_family == AF_INET){
+            if (entry->ifa_addr != nullptr) {
                 char buffer[INET_ADDRSTRLEN] = {0, };
                 inet_ntop(
                     addr_family,
@@ -59,7 +59,7 @@ int get_network_interface_info(std::string &local_ip, std::string &netmask, std:
                 local_ip.assign(buffer, INET_ADDRSTRLEN);
             }
 
-            if(entry->ifa_netmask != nullptr){
+            if (entry->ifa_netmask != nullptr) {
                 char buffer[INET_ADDRSTRLEN] = {0, };
                 inet_ntop(
                     addr_family,
@@ -70,17 +70,7 @@ int get_network_interface_info(std::string &local_ip, std::string &netmask, std:
 
                 netmask.assign(buffer, INET_ADDRSTRLEN);
             }
-        }
-        if (addr_family == AF_PACKET) {
-            char buffer[18];
-            if (entry->ifa_addr != nullptr) {
-                struct sockaddr_ll *s = (struct sockaddr_ll*)entry->ifa_addr;
-                buffer[6] = 0;
-                sprintf(buffer, "%02x:%02x:%02x:%02x:%02x:%02x",
-                        s->sll_addr[0], s->sll_addr[1], s->sll_addr[2],
-                        s->sll_addr[3], s->sll_addr[4], s->sll_addr[5]);
-            }
-            local_mac.assign(buffer, 18);
+            break;
         }
     }
 
