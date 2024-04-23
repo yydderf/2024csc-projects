@@ -28,19 +28,22 @@ ARPOperator::ARPOperator(std::string ip, std::string &ifname)
     arp_resp = (struct arp_header *)(buffer + ETH2_HEADER_LEN);
     ip_addr = ip;
 
+    // use ioctl to retrieve the iterface's information
+    // we first get the ifindex
     int tmp_sock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if (tmp_sock == -1) {
             perror("socket():");
             exit(1);
     }
     strcpy(ifr.ifr_name, ifname.c_str());
-    /*retrieve ethernet interface index*/
+
     if (ioctl(tmp_sock, SIOCGIFINDEX, &ifr) == -1) {
         perror("SIOCGIFINDEX");
         exit(1);
     }
     ifindex = ifr.ifr_ifindex;
 
+    // and then we get the mac address
     if (ioctl(tmp_sock, SIOCGIFHWADDR, &ifr) == -1) {
             perror("SIOCGIFINDEX");
             exit(1);
@@ -51,6 +54,7 @@ ARPOperator::ARPOperator(std::string ip, std::string &ifname)
 
     mac_char_to_string(mac_addr, ifr.ifr_hwaddr.sa_data);
 
+    // initialize the raw socket for send and recv
     if ((raw_sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
         perror("socket() failed");
         exit(EXIT_FAILURE);
@@ -59,11 +63,14 @@ ARPOperator::ARPOperator(std::string ip, std::string &ifname)
 
 ARPOperator::~ARPOperator()
 {
+    // close the raw socket when torn down
     close(raw_sock);
 }
 
 void ARPOperator::prepare_broadcast()
 {
+    // for broadcast
+    // dst -> FF:FF:FF:FF:FF:FF
     for (int index = 0; index < 6; index++)
     {
         ether_req->h_dest[index] = (unsigned char)0xff;
@@ -74,6 +81,8 @@ void ARPOperator::prepare_broadcast()
         socket_address.sll_addr[index] = src_mac_char[index];
     }
 
+    // some default values
+    // can be inspected via wireshark
     socket_address.sll_family = AF_PACKET;
     socket_address.sll_protocol = htons(ETH_P_ARP);
     socket_address.sll_ifindex = ifindex;
@@ -95,7 +104,7 @@ void ARPOperator::prepare_broadcast()
 
 int ARPOperator::send()
 {
-    buffer[32] = 0x00;
+    // buffer[32] = 0x00;
     return sendto(raw_sock, buffer, 42, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
 }
 
@@ -106,11 +115,15 @@ int ARPOperator::recv()
 
 void ARPOperator::set_mode(int mode)
 {
+    // set mode
+    // mode == ARP_REQUEST or mode == ARP_REPLY
     arp_req->opcode = htons(mode);
 }
 
 void ARPOperator::set_source(std::string ip, std::string mac)
 {
+    // set ip as source
+    // mac address is not written (TODO?)
     ip_string_to_uchar(src_ip_char, ip);
     
     memcpy(arp_req->sender_ip, src_ip_char, 4);
@@ -118,6 +131,8 @@ void ARPOperator::set_source(std::string ip, std::string mac)
 
 void ARPOperator::set_target(std::string ip, std::string mac)
 {
+    // set ip as target
+    // mac address is not written (TODO?)
     ip_string_to_uchar(dst_ip_char, ip);
 
     memcpy(arp_req->target_ip, dst_ip_char, 4);
@@ -181,25 +196,3 @@ void ipv4_uchar_to_string(std::string &target, unsigned char *ip_addr)
     }
     target = ss.str();
 }
-
-// void send_packet(int raw_sock, int ifindex,
-//         std::string sender_ip, std::string sender_mac,
-//         std::string target_ip, std::string target_mac)
-// {
-//     memset(buffer,0x00,60);
-//     while(1) {
-//         length = recvfrom(raw_sock, buffer, BUF_SIZE, 0, NULL, NULL);
-//         if (length == -1) {
-//             perror("recvfrom():");
-//             exit(EXIT_FAILURE);
-//         } if(htons(rcv_resp->h_proto) == PROTO_ARP) {
-//             std::string ip_str;
-//             std::string mac_str;
-//             ipv4_char_to_string(ip_str, arp_resp->sender_ip);
-//             mac_char_to_string(mac_str, (char*)arp_resp->sender_mac);
-//             std::cout << ip_str << " " << mac_str << std::endl;
-// 
-//             break;
-//         }
-//     }
-// }
