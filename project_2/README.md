@@ -13,10 +13,10 @@ make
 
 #### TODO
 - [ ] MITM Attack
-    - [ ] Task I - Device Address Information Collection
-        - [ ] Get network interface info
-        - [ ] Scan for available WiFi devices / VMs
-        - [ ] Print the devices
+    - [x] Task I - Device Address Information Collection
+        - [x] Get network interface info
+        - [x] Scan for available WiFi devices / VMs
+        - [x] Print the devices
     - [ ] Task II - ARP Spoofing (https://github.com/ML-Cai/ARPSpoofing/blob/master/main.cpp)
         - [ ] Generate ARP reply (ref: https://github.com/Abhijay90/arp_packet_generate/tree/master)
         - [ ] Send Spoofed ARP replies to the victim
@@ -24,10 +24,10 @@ make
         - [ ] Get request from victim (listen on port 80)
         - [ ] Send the request to the server
 - [ ] Pharm Attack
-    - [ ] Task I - Device Address Information Collection
-        - [ ] Get network interface info
-        - [ ] Scan for available WiFi devices / VMs
-        - [ ] Print the devices
+    - [x] Task I - Device Address Information Collection
+        - [x] Get network interface info
+        - [x] Scan for available WiFi devices / VMs
+        - [x] Print the devices
     - [ ] Task II - ARP Spoofing (https://github.com/ML-Cai/ARPSpoofing/blob/master/main.cpp)
         - [ ] Generate ARP reply (ref: https://github.com/Abhijay90/arp_packet_generate/tree/master)
         - [ ] Send Spoofed ARP replies to the victim
