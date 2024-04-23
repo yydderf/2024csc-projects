@@ -17,7 +17,7 @@ make
         - [ ] Get network interface info
         - [ ] Scan for available WiFi devices / VMs
         - [ ] Print the devices
-    - [ ] Task II - ARP Spoofing
+    - [ ] Task II - ARP Spoofing (https://github.com/ML-Cai/ARPSpoofing/blob/master/main.cpp)
         - [ ] Generate ARP reply (ref: https://github.com/Abhijay90/arp_packet_generate/tree/master)
         - [ ] Send Spoofed ARP replies to the victim
     - [ ] Task III - Fetch user credentials from HTTP sessions
@@ -28,7 +28,7 @@ make
         - [ ] Get network interface info
         - [ ] Scan for available WiFi devices / VMs
         - [ ] Print the devices
-    - [ ] Task II - ARP Spoofing
+    - [ ] Task II - ARP Spoofing (https://github.com/ML-Cai/ARPSpoofing/blob/master/main.cpp)
         - [ ] Generate ARP reply (ref: https://github.com/Abhijay90/arp_packet_generate/tree/master)
         - [ ] Send Spoofed ARP replies to the victim
     - [ ] Task IV - DNS Spoofing (DNS format, Netfilter queue)
