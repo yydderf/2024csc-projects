@@ -1,8 +1,10 @@
 #ifndef SCAN_H
 #define SCAN_H
 
-int get_network_interface_info(char *ip_addr, char *netmask, char *mac);
-std::tuple<std::string, std::string, std::string, std::string> scan_devices();
-void print_devices();
+#include <vector>
+
+int get_network_interface_info(std::string &ip_addr, std::string &netmask, std::string &mac);
+int scan_devices(std::string ip_addr, std::string mac_addr, std::vector<std::pair<std::string, std::string>> &answered_list, int timeout);
+void print_devices(std::vector<std::pair<std::string, std::string>> &list);
 
 #endif

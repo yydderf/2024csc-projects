@@ -1,21 +1,31 @@
-#include <arpa/inet.h>
-#include <cerrno>
-#include <ifaddrs.h>
 #include <iostream>
+#include <string>
+#include <cstring>
+#include <cerrno>
+#include <vector>
+#include <cstdlib>
+
+#include <unistd.h>
+#include <netinet/ether.h>
 #include <net/if.h>
 #include <net/ethernet.h>
-#include <string>
-#include <string.h>
-#include <sysexits.h>
+#include <arpa/inet.h>
+#include <ifaddrs.h>
+
+#include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <sys/time.h>
+#include <sysexits.h>
 #include <sys/types.h>
+
+#include <string.h>
 #include <linux/if_packet.h>
-#include <iomanip>
 
 #include "scan.h"
+#include "arp.h"
 
 // reference: https://github.com/ML-Cai/ARPSpoofing/blob/master/main.cpp#L210
-int get_network_interface_info(char *local_ip, char *netmask, char *local_mac)
+int get_network_interface_info(std::string &local_ip, std::string &netmask, std::string &local_mac)
 {
     struct ifaddrs* ptr_ifaddrs = nullptr;
     struct ifaddrs* entry = nullptr;
@@ -39,43 +49,71 @@ int get_network_interface_info(char *local_ip, char *netmask, char *local_mac)
         sa_family_t addr_family = entry->ifa_addr->sa_family;
         if(addr_family == AF_INET){
             if(entry->ifa_addr != nullptr){
-                // char buffer[INET_ADDRSTRLEN] = {0, };
+                char buffer[INET_ADDRSTRLEN] = {0, };
                 inet_ntop(
                     addr_family,
                     &((struct sockaddr_in*)(entry->ifa_addr))->sin_addr,
-                    local_ip,
+                    buffer,
                     INET_ADDRSTRLEN
                 );
 
-                ip_hr = std::string(local_ip);
+                local_ip.assign(buffer, INET_ADDRSTRLEN);
             }
 
             if(entry->ifa_netmask != nullptr){
-                // char buffer[INET_ADDRSTRLEN] = {0, };
+                char buffer[INET_ADDRSTRLEN] = {0, };
                 inet_ntop(
                     addr_family,
                     &((struct sockaddr_in*)(entry->ifa_netmask))->sin_addr,
-                    netmask,
+                    buffer,
                     INET_ADDRSTRLEN
                 );
 
-                netmask_hr = std::string(netmask);
+                netmask.assign(buffer, INET_ADDRSTRLEN);
             }
-            std::cout << ip_hr << " " << netmask_hr << std::endl;
         }
         if (addr_family == AF_PACKET) {
+            char buffer[18];
             if (entry->ifa_addr != nullptr) {
                 struct sockaddr_ll *s = (struct sockaddr_ll*)entry->ifa_addr;
-                memcpy(local_mac, s->sll_addr, 8);
-                local_mac[6] = 0;
-                sprintf(local_mac, "%02x:%02x:%02x:%02x:%02x:%02x",
+                buffer[6] = 0;
+                sprintf(buffer, "%02x:%02x:%02x:%02x:%02x:%02x",
                         s->sll_addr[0], s->sll_addr[1], s->sll_addr[2],
                         s->sll_addr[3], s->sll_addr[4], s->sll_addr[5]);
             }
-            std::cout << local_mac << std::endl;
+            local_mac.assign(buffer, 18);
         }
     }
 
     freeifaddrs(ptr_ifaddrs);
     return EX_OK;
+}
+
+int scan_devices(std::string ip_addr, std::string mac_addr, 
+        std::vector<std::pair<std::string, std::string>> &answered_list, int timeout)
+{
+    int sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+    if (sockfd < 0) {
+        perror("socket() failed");
+        exit(EXIT_FAILURE);
+    }
+
+    int optval = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(optval)) < 0) {
+        perror("setsocketopt() failed");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
+
+    if (send_arp_broadcast(sockfd, ip_addr) < 0) {
+        perror("send_arp_broadcast() failed");
+        close(sockfd);
+        exit(EXIT_FAILURE);
+    }
+
+    recv_arp_responses(sockfd, answered_list, timeout);
+
+    close(sockfd);
+
+    return 0;
 }
