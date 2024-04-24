@@ -19,6 +19,10 @@
 
 #include "arp.h"
 
+/**
+ * @param ip local ip address
+ * @param ifname target local network's network interface name
+ */
 ARPOperator::ARPOperator(std::string ip, std::string &ifname)
 {
     struct ifreq ifr;
@@ -73,6 +77,10 @@ ARPOperator::~ARPOperator()
     close(raw_sock);
 }
 
+/**
+ * Prepare for socket address
+ * Only required in the initialization of ARPOperator
+ */
 void ARPOperator::prepare_socket_address()
 {
     socket_address.sll_family = AF_PACKET;
@@ -84,6 +92,10 @@ void ARPOperator::prepare_socket_address()
     socket_address.sll_addr[7] = 0x00;
 }
 
+/**
+ * Write the values to the ether frame headers
+ * Called after the buffer is cleared
+ */
 void ARPOperator::prepare_header_values()
 {
     ether_req->h_proto = htons(ETH_P_ARP);
@@ -94,11 +106,15 @@ void ARPOperator::prepare_header_values()
     arp_req->plen = IPV4_LENGTH;
 }
 
+/**
+ * Prepare for broadcast
+ * (network neighbors discovery)
+ * mac_dst -> FF:FF:FF:FF:FF:FF
+ * mac_src -> local_mac_addr
+ */
 void ARPOperator::prepare_broadcast()
 {
     // for broadcast
-    // mac_dst -> FF:FF:FF:FF:FF:FF
-    // mac_src -> local_mac_addr
     for (int index = 0; index < 6; index++)
     {
         ether_req->h_dest[index] = (unsigned char)0xff;
@@ -117,6 +133,10 @@ void ARPOperator::prepare_broadcast()
     set_source(ip_addr, mac_addr);
 }
 
+/**
+ * Prepare for unicast
+ * (send reply packet to targets)
+ */
 void ARPOperator::prepare_unicast()
 {
     socket_address.sll_pkttype = (PACKET_OTHERHOST);
@@ -124,17 +144,28 @@ void ARPOperator::prepare_unicast()
     set_mode(ARP_REPLY);
 }
 
+/**
+ * Send the buffer
+ */
 int ARPOperator::send()
 {
     // buffer[32] = 0x00;
     return sendto(raw_sock, buffer, 42, 0, (struct sockaddr*)&socket_address, sizeof(socket_address));
 }
 
+/**
+ * Recv ARP packets and write to buffer
+ */
 int ARPOperator::recv()
 {
     return recvfrom(raw_sock, buffer, BUF_SIZE, 0, NULL, NULL);
 }
 
+/**
+ * Set ARPOperator's mode
+ * ARP_REQUEST for arp request
+ * ARP_REPLY for arp reply
+ */
 void ARPOperator::set_mode(int mode)
 {
     // set mode

