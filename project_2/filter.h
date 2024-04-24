@@ -6,6 +6,7 @@
 
 static int callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
         struct nfq_data *nfa, void *data);
+void extractHttpInfo(const unsigned char* payload, int payloadSize);
 
 class FilterOperator {
     struct nfq_handle *h;
