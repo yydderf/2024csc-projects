@@ -31,7 +31,7 @@ int SpoofOperator::attack(std::string target_ip, std::string spoof_ip)
     arp_operator->set_target(target_ip, ip2mac_map->find(target_ip)->second);
     arp_operator->set_source(spoof_ip, source_mac);
 
-    arp_operator->list_frame_info();
+    // arp_operator->list_frame_info();
 
     if (arp_operator->send() < 0) {
         std::cerr << "send operation failed" << std::endl;

