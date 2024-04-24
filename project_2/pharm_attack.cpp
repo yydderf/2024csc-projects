@@ -97,5 +97,9 @@ int main()
 
     std::cout << "target: " << target_ip << " " << target_mac << std::endl;
 
+    if (set_ip_forwarding(1) < 0) {
+        exit(EXIT_FAILURE);
+    }
+
     return 0;
 }

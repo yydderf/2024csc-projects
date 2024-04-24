@@ -16,4 +16,6 @@ public:
     int restore(std::string target_ip);
 };
 
+int set_ip_forwarding(int toggle);
+
 #endif

@@ -1,7 +1,9 @@
 #include <string>
+#include <fstream>
 #include <sys/socket.h>
 #include <linux/if_packet.h>
 #include <net/ethernet.h>
+#include <iostream>
 
 #include "spoof.h"
 #include "arp.h"
@@ -27,5 +29,20 @@ int SpoofOperator::attack(std::string target_ip)
 
 int SpoofOperator::restore(std::string target_ip)
 {
+    return 0;
+}
+
+int set_ip_forwarding(int toggle)
+{
+    std::ofstream ip_forward_file("/proc/sys/net/ipv4/ip_forward");
+    if (!ip_forward_file.is_open()) {
+        perror("toggle ip_forward failed");
+        return -1;
+    }
+
+    ip_forward_file << toggle;
+    ip_forward_file.close();
+
+    std::cout << "IP forwarding enabled" << std::endl;
     return 0;
 }
