@@ -59,6 +59,12 @@ ARPOperator::ARPOperator(std::string ip, std::string &ifname)
         perror("socket() failed");
         exit(EXIT_FAILURE);
     }
+
+    // initialize socket address
+    prepare_socket_address();
+
+    // initialize arp / ether header values
+    prepare_header_values();
 }
 
 ARPOperator::~ARPOperator()
@@ -67,10 +73,32 @@ ARPOperator::~ARPOperator()
     close(raw_sock);
 }
 
+void ARPOperator::prepare_socket_address()
+{
+    socket_address.sll_family = AF_PACKET;
+    socket_address.sll_protocol = htons(ETH_P_ARP);
+    socket_address.sll_ifindex = ifindex;
+    socket_address.sll_hatype = htons(ARPHRD_ETHER);
+    socket_address.sll_halen = MAC_LENGTH;
+    socket_address.sll_addr[6] = 0x00;
+    socket_address.sll_addr[7] = 0x00;
+}
+
+void ARPOperator::prepare_header_values()
+{
+    ether_req->h_proto = htons(ETH_P_ARP);
+
+    arp_req->htype = htons(HW_TYPE);
+    arp_req->ptype = htons(ETH_P_IP);
+    arp_req->hlen = MAC_LENGTH;
+    arp_req->plen = IPV4_LENGTH;
+}
+
 void ARPOperator::prepare_broadcast()
 {
     // for broadcast
-    // dst -> FF:FF:FF:FF:FF:FF
+    // mac_dst -> FF:FF:FF:FF:FF:FF
+    // mac_src -> local_mac_addr
     for (int index = 0; index < 6; index++)
     {
         ether_req->h_dest[index] = (unsigned char)0xff;
@@ -83,23 +111,17 @@ void ARPOperator::prepare_broadcast()
 
     // some default values
     // can be inspected via wireshark
-    socket_address.sll_family = AF_PACKET;
-    socket_address.sll_protocol = htons(ETH_P_ARP);
-    socket_address.sll_ifindex = ifindex;
-    socket_address.sll_hatype = htons(ARPHRD_ETHER);
     socket_address.sll_pkttype = (PACKET_BROADCAST);
-    socket_address.sll_halen = MAC_LENGTH;
-    socket_address.sll_addr[6] = 0x00;
-    socket_address.sll_addr[7] = 0x00;
 
-    ether_req->h_proto = htons(ETH_P_ARP);
-
-    arp_req->htype = htons(HW_TYPE);
-    arp_req->ptype = htons(ETH_P_IP);
-    arp_req->hlen = MAC_LENGTH;
-    arp_req->plen = IPV4_LENGTH;
     set_mode(ARP_REQUEST);
     set_source(ip_addr, mac_addr);
+}
+
+void ARPOperator::prepare_unicast()
+{
+    socket_address.sll_pkttype = (PACKET_OTHERHOST);
+
+    set_mode(ARP_REPLY);
 }
 
 int ARPOperator::send()
@@ -120,6 +142,16 @@ void ARPOperator::set_mode(int mode)
     arp_req->opcode = htons(mode);
 }
 
+void ARPOperator::set_ether_source(std::string mac)
+{
+    memcpy(ether_req->h_source, (unsigned char *)ether_aton(mac.c_str()), 6);
+}
+
+void ARPOperator::set_ether_target(std::string mac)
+{
+    memcpy(ether_req->h_dest, (unsigned char *)ether_aton(mac.c_str()), 6);
+}
+
 void ARPOperator::set_source(std::string ip, std::string mac)
 {
     // set ip as source
@@ -127,6 +159,7 @@ void ARPOperator::set_source(std::string ip, std::string mac)
     ip_string_to_uchar(src_ip_char, ip);
     
     memcpy(arp_req->sender_ip, src_ip_char, 4);
+    memcpy(arp_req->sender_mac, (unsigned char *)ether_aton(mac.c_str()), 6);
 }
 
 void ARPOperator::set_target(std::string ip, std::string mac)
@@ -136,6 +169,7 @@ void ARPOperator::set_target(std::string ip, std::string mac)
     ip_string_to_uchar(dst_ip_char, ip);
 
     memcpy(arp_req->target_ip, dst_ip_char, 4);
+    memcpy(arp_req->target_mac, (unsigned char *)ether_aton(mac.c_str()), 6);
 }
 
 void ARPOperator::set_timeout(int sec, int usec)
@@ -163,6 +197,16 @@ int ARPOperator::get_candidate_response(std::string &ip, std::string &mac)
         return 1;
     }
     return 0;
+}
+
+std::string ARPOperator::get_local_ip()
+{
+    return ip_addr;
+}
+
+std::string ARPOperator::get_local_mac()
+{
+    return mac_addr;
 }
 
 void ip_string_to_uchar(unsigned char *target, std::string &str_ip)
@@ -195,4 +239,22 @@ void ipv4_uchar_to_string(std::string &target, unsigned char *ip_addr)
         if (i < 3) ss << ".";
     }
     target = ss.str();
+}
+
+void ARPOperator::list_frame_info()
+{
+    std::string ether_hdest, ether_hsource;
+    std::string arp_sender_mac, arp_sender_ip;
+    std::string arp_target_mac, arp_target_ip;
+    mac_char_to_string(ether_hdest, (char*)ether_req->h_dest);
+    mac_char_to_string(ether_hsource, (char*)ether_req->h_source);
+    mac_char_to_string(arp_sender_mac, (char*)arp_req->sender_mac);
+    mac_char_to_string(arp_target_mac, (char*)arp_req->target_mac);
+    ipv4_uchar_to_string(arp_sender_ip, arp_req->sender_ip);
+    ipv4_uchar_to_string(arp_target_ip, arp_req->target_ip);
+
+    std::cout << "ether: " << ether_hsource << " -> " << ether_hdest << std::endl;
+    std::cout << "arp-mac: " << arp_sender_mac << " -> " << arp_target_mac << std::endl;
+    std::cout << "arp-ip : " << arp_sender_ip << " -> " << arp_target_ip << std::endl;
+    std::cout << "-----------------------------" << std::endl;
 }

