@@ -59,6 +59,12 @@ ARPOperator::ARPOperator(std::string ip, std::string &ifname)
         perror("socket() failed");
         exit(EXIT_FAILURE);
     }
+
+    // initialize socket address
+    prepare_socket_address();
+
+    // initialize arp / ether header values
+    prepare_header_values();
 }
 
 ARPOperator::~ARPOperator()
@@ -67,10 +73,32 @@ ARPOperator::~ARPOperator()
     close(raw_sock);
 }
 
+void ARPOperator::prepare_socket_address()
+{
+    socket_address.sll_family = AF_PACKET;
+    socket_address.sll_protocol = htons(ETH_P_ARP);
+    socket_address.sll_ifindex = ifindex;
+    socket_address.sll_hatype = htons(ARPHRD_ETHER);
+    socket_address.sll_halen = MAC_LENGTH;
+    socket_address.sll_addr[6] = 0x00;
+    socket_address.sll_addr[7] = 0x00;
+}
+
+void ARPOperator::prepare_header_values()
+{
+    ether_req->h_proto = htons(ETH_P_ARP);
+
+    arp_req->htype = htons(HW_TYPE);
+    arp_req->ptype = htons(ETH_P_IP);
+    arp_req->hlen = MAC_LENGTH;
+    arp_req->plen = IPV4_LENGTH;
+}
+
 void ARPOperator::prepare_broadcast()
 {
     // for broadcast
-    // dst -> FF:FF:FF:FF:FF:FF
+    // mac_dst -> FF:FF:FF:FF:FF:FF
+    // mac_src -> local_mac_addr
     for (int index = 0; index < 6; index++)
     {
         ether_req->h_dest[index] = (unsigned char)0xff;
@@ -83,21 +111,8 @@ void ARPOperator::prepare_broadcast()
 
     // some default values
     // can be inspected via wireshark
-    socket_address.sll_family = AF_PACKET;
-    socket_address.sll_protocol = htons(ETH_P_ARP);
-    socket_address.sll_ifindex = ifindex;
-    socket_address.sll_hatype = htons(ARPHRD_ETHER);
     socket_address.sll_pkttype = (PACKET_BROADCAST);
-    socket_address.sll_halen = MAC_LENGTH;
-    socket_address.sll_addr[6] = 0x00;
-    socket_address.sll_addr[7] = 0x00;
 
-    ether_req->h_proto = htons(ETH_P_ARP);
-
-    arp_req->htype = htons(HW_TYPE);
-    arp_req->ptype = htons(ETH_P_IP);
-    arp_req->hlen = MAC_LENGTH;
-    arp_req->plen = IPV4_LENGTH;
     set_mode(ARP_REQUEST);
     set_source(ip_addr, mac_addr);
 }
@@ -106,12 +121,6 @@ void ARPOperator::prepare_unicast()
 {
     socket_address.sll_pkttype = (PACKET_OTHERHOST);
 
-    ether_req->h_proto = htons(ETH_P_ARP);
-
-    arp_req->htype = htons(HW_TYPE);
-    arp_req->ptype = htons(ETH_P_IP);
-    arp_req->hlen = MAC_LENGTH;
-    arp_req->plen = IPV4_LENGTH;
     set_mode(ARP_REPLY);
 }
 

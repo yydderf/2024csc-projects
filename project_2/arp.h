@@ -46,17 +46,23 @@ class ARPOperator {
 public:
     ARPOperator(std::string sender_ip, std::string &ifname);
     ~ARPOperator();
-    void prepare_broadcast();
-    void prepare_unicast();
     int send();
     int recv();
+
+    void prepare_socket_address();
+    void prepare_header_values();
+    void prepare_broadcast();
+    void prepare_unicast();
+
     void clear_buffer();
+
     void set_mode(int mode);
     void set_ether_source(std::string mac);
     void set_ether_target(std::string mac);
     void set_source(std::string ip, std::string mac);
     void set_target(std::string ip, std::string mac);
     void set_timeout(int sec, int usec);
+
     std::string get_local_ip();
     std::string get_local_mac();
     void list_frame_info();

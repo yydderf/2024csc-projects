@@ -31,7 +31,6 @@ int SpoofOperator::attack(std::string target_ip, std::string spoof_ip)
     arp_operator->set_target(target_ip, ip2mac_map->find(target_ip)->second);
     arp_operator->set_source(spoof_ip, source_mac);
 
-    // send packet
     arp_operator->list_frame_info();
 
     if (arp_operator->send() < 0) {
@@ -58,6 +57,5 @@ int set_ip_forwarding(int toggle)
     ip_forward_file << toggle;
     ip_forward_file.close();
 
-    std::cout << "IP forwarding enabled" << std::endl;
     return 0;
 }
