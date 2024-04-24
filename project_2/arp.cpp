@@ -141,8 +141,8 @@ void ARPOperator::set_target(std::string ip, std::string mac)
 void ARPOperator::set_timeout(int sec, int usec)
 {
     struct timeval timeout;
-    timeout.tv_sec = 5; // Timeout of 5 seconds
-    timeout.tv_usec = 0;
+    timeout.tv_sec = sec; // Timeout of 5 seconds
+    timeout.tv_usec = usec;
     if (setsockopt(raw_sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
         perror("setsockopt() failed");
         close(raw_sock);

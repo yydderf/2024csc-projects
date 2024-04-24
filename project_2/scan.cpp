@@ -4,6 +4,8 @@
 #include <cerrno>
 #include <vector>
 #include <cstdlib>
+#include <fstream>
+#include <sstream>
 
 #include <unistd.h>
 #include <netinet/ether.h>
@@ -101,33 +103,38 @@ int get_host_in_range(std::string ip_addr, std::string netmask, std::vector<std:
     return 0;
 }
 
-// int scan_devices(std::string ip_addr, std::string mac_addr, 
-//         std::vector<std::pair<std::string, std::string>> &answered_list, int timeout)
-// {
-//     int sockfd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
-//     if (sockfd < 0) {
-//         perror("socket() failed");
-//         exit(EXIT_FAILURE);
-//     }
-// 
-//     // int optval = 1;
-//     // if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(optval)) < 0) {
-//     //     perror("setsocketopt() failed");
-//     //     close(sockfd);
-//     //     exit(EXIT_FAILURE);
-//     // }
-// 
-//     if (send_arp_broadcast(sockfd, ip_addr, "76.12.0.32") < 0) {
-//         perror("send_arp_broadcast() failed");
-//         close(sockfd);
-//         exit(EXIT_FAILURE);
-//     }
-// 
-//     std::cout << "sent" << std::endl;
-// 
-//     recv_arp_responses(sockfd, answered_list, timeout);
-// 
-//     close(sockfd);
-// 
-//     return 0;
-// }
+std::string get_gateway(std::string ifname)
+{
+    std::ifstream route_file("/proc/net/route");
+    if (!route_file.is_open()) {
+        std::cerr << "Failed to open /proc/net/route" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    std::string line;
+    while (std::getline(route_file, line)) {
+        std::string iface;
+        unsigned long dest;
+        unsigned long gateway;
+        int flags;
+
+        std::istringstream iss(line);
+        if (!(iss >> iface >> std::hex >> dest >> std::hex >> gateway >> std::dec >> flags)) {
+            continue;
+        }
+        if (iface != ifname) {
+            continue;
+        }
+
+        if (dest == 0 && gateway != 0) {
+            // Found default gateway
+            route_file.close();
+            struct in_addr addr;
+            addr.s_addr = gateway;
+            return inet_ntoa(addr);
+        }
+    }
+
+    route_file.close();
+    return "";
+}
