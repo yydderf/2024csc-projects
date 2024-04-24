@@ -48,10 +48,10 @@ void arp_spoofing(std::string gateway_ip,
 {
     // run for 100 iterations
     int nbytes;
-    filter_operator->set_timeout(0, 200);
+    filter_operator->set_timeout(1, 0);
 
     for (int t = 0; t < 100; t++) {
-        std::cout << "spoofing iteration: " << t << std::endl;
+        // std::cout << "spoofing iteration: " << t << std::endl;
         for (auto i = 0; i < answered_list.size(); i++) {
             if (answered_list[i].first != gateway_ip) {
                 spoof_operator->attack(answered_list[i].first, gateway_ip);
@@ -73,7 +73,7 @@ void arp_spoofing(std::string gateway_ip,
             }
         }
         // process data
-        sleep(2);
+        sleep(1);
     }
 }
 
@@ -114,7 +114,7 @@ int main()
     // set timeout
     // don't know how to set the actual timeout window
     arp_operator.clear_buffer();
-    arp_operator.set_timeout(2, 0);
+    arp_operator.set_timeout(1, 0);
     int nbytes;
     std::string host_ip, host_mac;
 
