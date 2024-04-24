@@ -17,10 +17,16 @@
 #include <linux/ip.h>
 #include <time.h>
 
+#include <linux/netfilter.h>
+#include <libnetfilter_queue/libnetfilter_queue.h>
+
 #include "arp.h"
 #include "scan.h"
 #include "spoof.h"
 #include "mitm_attack.h"
+
+#define NF_DROP 0
+#define NF_ACCEPT 1
 
 using namespace std;
 
@@ -34,6 +40,7 @@ using namespace std;
 struct nfq_handle *h;
 struct nfq_q_handle *qh;
 struct nfnl_handle *nh;
+void fetch_information(struct nfq_handle *h, struct nfq_q_handle *qh, struct nfnl_handle *nh, int fd);
 int fd;
 
 void arp_spoofing(string gateway_ip, vector<pair<string, string>> answered_list, SpoofOperator *spoof_operator) {
@@ -80,6 +87,8 @@ static int Callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_
         }
     }
     printf("\n");
+
+    return 0;
 }
 
 void fetch_information(struct nfq_handle *h, struct nfq_q_handle *qh, struct nfnl_handle *nh, int fd){

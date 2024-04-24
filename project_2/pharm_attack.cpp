@@ -16,7 +16,6 @@
 
 #include <linux/if_packet.h>
 
-
 #include "arp.h"
 #include "scan.h"
 #include "spoof.h"
