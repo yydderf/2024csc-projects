@@ -12,7 +12,7 @@ make
 ```
 
 #### TODO
-- [ ] MITM Attack
+- [x] MITM Attack
     - [x] Task I - Device Address Information Collection
         - [x] Get network interface info
         - [x] Scan for available WiFi devices / VMs
@@ -20,9 +20,9 @@ make
     - [x] Task II - ARP Spoofing (https://github.com/ML-Cai/ARPSpoofing/blob/master/main.cpp)
         - [x] Generate ARP reply (ref: https://github.com/Abhijay90/arp_packet_generate/tree/master)
         - [x] Send Spoofed ARP replies to the victim
-    - [ ] Task III - Fetch user credentials from HTTP sessions
-        - [ ] Get request from victim (listen on port 80)
-        - [ ] Send the request to the server
+    - [x] Task III - Fetch user credentials from HTTP sessions
+        - [x] Get request from victim (listen on port 80)
+        - [x] Send the request to the server
 - [ ] Pharm Attack
     - [x] Task I - Device Address Information Collection
         - [x] Get network interface info
