@@ -120,6 +120,16 @@ void ARPOperator::set_mode(int mode)
     arp_req->opcode = htons(mode);
 }
 
+void ARPOperator::set_ether_source(std::string mac)
+{
+    memcpy(ether_req->h_source, (unsigned char *)ether_aton(mac.c_str()), 6);
+}
+
+void ARPOperator::set_ether_target(std::string mac)
+{
+    memcpy(ether_req->h_dest, (unsigned char *)ether_aton(mac.c_str()), 6);
+}
+
 void ARPOperator::set_source(std::string ip, std::string mac)
 {
     // set ip as source

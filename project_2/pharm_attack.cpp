@@ -101,5 +101,7 @@ int main()
         exit(EXIT_FAILURE);
     }
 
+    spoof_operator.attack(target_ip);
+
     return 0;
 }

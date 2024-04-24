@@ -7,8 +7,8 @@
 
 class SpoofOperator {
     ARPOperator *arp_operator;
+    std::string source_ip;
     std::string gateway_ip;
-    std::string gateway_mac;
     std::map<std::string, std::string> *ip2mac_map;
 public:
     SpoofOperator(ARPOperator *arp_operator, std::string gateway_ip, std::map<std::string, std::string> *ip2mac_map);
