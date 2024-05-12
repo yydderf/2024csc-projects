@@ -12,5 +12,5 @@
     - [x] compress the virus
     - [x] pad the virus's size to make it as large as `ls`
     - [x] modify the last few bytes of the virus
-- [ ] Task III - Prepare the ransomware payload
-    - [ ] execute `ls` and pass all the arguments
+- [x] Task III - Prepare the ransomware payload
+    - [x] execute `ls` and pass all the arguments
