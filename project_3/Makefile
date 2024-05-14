@@ -1,7 +1,10 @@
+export PWD = "$(shell pwd)"
+
 setup:
 	chmod +x make_payload
 	chmod +x crack_attack
 	chmod +x attacker_server
+	@if [ "${PWD}" != "/app" ]; then mv virus /app/virus; fi
 
 .PHONY:
 clean:
