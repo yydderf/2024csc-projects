@@ -12,5 +12,6 @@ clean:
 	rm -f new_ls
 
 pack:
+	rm -f 109550014-109611087.zip
 	zip 109550014-109611087.zip Makefile attacker_server \
 		crack_attack make_payload dummy_payload worm
