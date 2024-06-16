@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 from pwn import *
 
 context(arch = 'x86_64', os = 'linux')
